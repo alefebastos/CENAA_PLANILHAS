@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Horizonte — Consolidador de Laudos de Solo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg: #14160f;
+    --surface: #1c1f16;
+    --surface-2: #242819;
+    --line: #34381f;
+    --text: #ece6d6;
+    --muted: #9a9678;
+    --muted-2: #6f6c53;
+    --clay: #b6822f;
+    --clay-bright: #d9a03f;
+    --leaf: #7f9a52;
+    --rust: #b6552f;
+    --topsoil: #241a12;
+    --subsoil: #6b4a25;
+    --parent: #8c8563;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.5;
+    padding: 48px 20px 96px;
+  }
+  .wrap{ max-width: 860px; margin: 0 auto; }
+
+  header.hero{ margin-bottom: 40px; }
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--clay-bright);
+    margin: 0 0 10px;
+  }
+  h1{
+    font-family:'Fraunces', serif;
+    font-weight: 600;
+    font-size: 40px;
+    line-height: 1.08;
+    margin: 0 0 14px;
+    letter-spacing: -0.01em;
+  }
+  .hero p{
+    color: var(--muted);
+    font-size: 15.5px;
+    max-width: 56ch;
+    margin: 0;
+  }
+  .horizon{
+    margin-top: 26px;
+    height: 10px;
+    border-radius: 3px;
+    overflow:hidden;
+    display:flex;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.3);
+  }
+  .horizon span{ flex:1; }
+  .horizon .h1s{ background: var(--topsoil); }
+  .horizon .h2s{ background: var(--subsoil); }
+  .horizon .h3s{ background: var(--clay); }
+  .horizon .h4s{ background: var(--parent); }
+
+  .card{
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 26px 28px;
+    margin-bottom: 20px;
+  }
+  .step-head{
+    display:flex;
+    align-items:baseline;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  .step-num{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--bg);
+    background: var(--clay-bright);
+    width: 22px;height:22px;
+    border-radius: 50%;
+    display:inline-flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+    transform: translateY(1px);
+  }
+  .step-title{
+    font-family:'Fraunces', serif;
+    font-size: 20px;
+    font-weight: 500;
+  }
+  .step-sub{
+    color: var(--muted);
+    font-size: 13.5px;
+    margin: 0 0 18px 34px;
+  }
+  .step-body{ margin-left: 34px; }
+
+  .dropzone{
+    border: 1.5px dashed var(--line);
+    border-radius: 8px;
+    padding: 22px;
+    text-align:center;
+    cursor:pointer;
+    transition: border-color .15s, background .15s;
+    background: var(--surface-2);
+  }
+  .dropzone:hover, .dropzone.drag{
+    border-color: var(--clay-bright);
+    background: #262a19;
+  }
+  .dropzone input{ display:none; }
+  .dz-label{ font-size: 14px; color: var(--text); }
+  .dz-sub{ font-size: 12px; color: var(--muted-2); margin-top:4px; }
+
+  select, button{
+    font-family:'Inter', sans-serif;
+    font-size: 14px;
+  }
+  select{
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+
+  .btn{
+    background: var(--clay-bright);
+    color: #1c1500;
+    border: none;
+    border-radius: 7px;
+    padding: 11px 20px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter .12s, transform .05s;
+  }
+  .btn:hover{ filter: brightness(1.08); }
+  .btn:active{ transform: translateY(1px); }
+  .btn:disabled{ background: var(--muted-2); color: #2a2a20; cursor: not-allowed; }
+  .btn.secondary{
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--text);
+  }
+  .btn.secondary:hover{ border-color: var(--clay-bright); filter:none; }
+
+  .file-chip{
+    display:flex; align-items:center; justify-content:space-between;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 9px 12px;
+    margin-top: 10px;
+    font-size: 13px;
+  }
+  .file-chip .name{ font-family:'JetBrains Mono', monospace; }
+  .file-chip .status{ color: var(--leaf); font-size: 12px; }
+  .file-chip .status.warn{ color: var(--rust); }
+  .file-chip button{
+    background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;
+    padding: 2px 6px;
+  }
+  .file-chip button:hover{ color: var(--rust); }
+
+  .opt{
+    display:flex; align-items:flex-start; gap: 10px;
+    margin-bottom: 14px;
+    font-size: 14px;
+  }
+  .opt input{ margin-top: 3px; }
+  .opt .opt-sub{ color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+
+  .field-row{
+    display:flex; align-items:center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap;
+  }
+  .field-row label{ font-size: 13px; color: var(--muted); }
+
+  table.map-table{
+    width:100%; border-collapse: collapse; font-size: 12.5px; margin-top: 14px;
+    font-family:'JetBrains Mono', monospace;
+  }
+  table.map-table th, table.map-table td{
+    text-align:left; padding: 5px 8px; border-bottom: 1px solid var(--line);
+  }
+  table.map-table th{ color: var(--muted); font-weight:500; }
+  .pill{
+    display:inline-block; padding: 1px 7px; border-radius: 20px;
+    font-size: 11px; background: var(--surface-2); color: var(--leaf);
+    border: 1px solid var(--line);
+  }
+  .pill.miss{ color: var(--rust); }
+
+  .log{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    background: #0f110c;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 16px;
+    max-height: 340px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    color: var(--parent);
+  }
+  .log .ok{ color: var(--leaf); }
+  .log .warn{ color: var(--clay-bright); }
+  .log .head{ color: var(--text); font-weight:600; }
+
+  .summary-grid{
+    display:grid; grid-template-columns: repeat(auto-fill, minmax(120px,1fr));
+    gap: 10px; margin: 14px 0 4px;
+  }
+  .stat{
+    background: var(--surface-2); border:1px solid var(--line); border-radius: 7px;
+    padding: 12px;
+  }
+  .stat .n{ font-family:'JetBrains Mono', monospace; font-size: 20px; color: var(--clay-bright); }
+  .stat .l{ font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-top:2px;}
+
+  .note{
+    font-size: 12.5px; color: var(--muted-2); border-left: 2px solid var(--line);
+    padding-left: 10px; margin-top: 16px;
+  }
+  .hidden{ display:none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <p class="eyebrow">Consolidador de laudos · CENAA</p>
+    <h1>Horizonte</h1>
+    <p>Sobe a planilha principal do cliente e os laudos parciais (ICP, Enxofre, micronutrientes, pH). O casamento é feito pelo ID do laboratório — com ou sem o prefixo <code>SO26.</code> — e só preenche o que ainda está em branco.</p>
+    <div class="horizon"><span class="h1s"></span><span class="h2s"></span><span class="h3s"></span><span class="h4s"></span></div>
+  </header>
+
+  <!-- STEP 1 -->
+  <div class="card">
+    <div class="step-head"><span class="step-num">1</span><span class="step-title">Planilha principal</span></div>
+    <p class="step-sub">O arquivo do cliente, com a coluna "Lab" e as colunas de resultado a preencher.</p>
+    <div class="step-body">
+      <div class="dropzone" id="dz-main">
+        <input type="file" id="input-main" accept=".xlsx,.xlsm">
+        <div class="dz-label">Clique ou arraste a planilha principal (.xlsx / .xlsm)</div>
+        <div class="dz-sub">Ex: Marcelo_Orlando_-_MOX_LOTE_-606_-_A.xlsx</div>
+      </div>
+      <div id="main-status"></div>
+
+      <div id="main-config" class="hidden" style="margin-top:16px;">
+        <div class="field-row">
+          <label>Aba com os dados:</label>
+          <select id="sheet-select"></select>
+        </div>
+        <div id="main-map-report"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="card">
+    <div class="step-head"><span class="step-num">2</span><span class="step-title">Laudos parciais</span></div>
+    <p class="step-sub">Solta quantos arquivos quiser: ICP (Ca/Mg/K/Na, ou Cu/Fe/Mn/Zn/B/P), Enxofre, ou a aba "pH" do INFOLAB. O tipo de cada um é detectado automaticamente.</p>
+    <div class="step-body">
+      <div class="dropzone" id="dz-sources">
+        <input type="file" id="input-sources" accept=".xlsx,.xlsm" multiple>
+        <div class="dz-label">Clique ou arraste um ou mais laudos</div>
+        <div class="dz-sub">Múltiplos arquivos de uma vez são aceitos</div>
+      </div>
+      <div id="sources-list"></div>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="card">
+    <div class="step-head"><span class="step-num">3</span><span class="step-title">Opções</span></div>
+    <p class="step-sub">Regras aplicadas no preenchimento.</p>
+    <div class="step-body">
+      <label class="opt">
+        <input type="checkbox" id="opt-neg" checked>
+        <div>Zerar valores negativos
+          <div class="opt-sub">Qualquer resultado lido como negativo vira 0.</div>
+        </div>
+      </label>
+      <label class="opt">
+        <input type="checkbox" id="opt-cuzn10">
+        <div>Corrigir Cu e Zn (× 10)
+          <div class="opt-sub">Ative apenas se o laudo de micronutrientes desse lote precisar do fator de correção do equipamento.</div>
+        </div>
+      </label>
+      <label class="opt">
+        <input type="checkbox" id="opt-formulas" checked>
+        <div>Calcular relações por fórmula (Ca+Mg, T, V%, Sat.Al, Ca/CTC, Mg/CTC, K/CTC, H+Al/CTC, Ca/Mg, Ca/K, Mg/K)
+          <div class="opt-sub">Só preenche uma relação na linha em que todos os valores que ela depende já estão presentes.</div>
+        </div>
+      </label>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="card">
+    <div class="step-head"><span class="step-num">4</span><span class="step-title">Processar</span></div>
+    <div class="step-body">
+      <button class="btn" id="btn-process" disabled>Preencher planilha principal</button>
+      <button class="btn secondary hidden" id="btn-download" style="margin-left:10px;">Baixar planilha preenchida</button>
+      <div id="report" style="margin-top:18px;"></div>
+    </div>
+  </div>
+
+  <p class="note">
+    Feito no navegador com SheetJS — não sobrescreve células já preenchidas e nunca sobe seus arquivos para nenhum servidor.
+    Observação: a biblioteca usada preserva os valores e fórmulas, mas pode não manter 100% da formatação visual (cores, bordas)
+    da planilha original — se isso for essencial, confira o arquivo final antes de enviar ao cliente.
+  </p>
+
+</div>
+
+<script>
+const state = {
+  mainWB: null,
+  mainSheetName: null,
+  mainAOA: null,
+  mainHeaderRow: -1,
+  mainColMap: {},
+  mainLastRow: 0,
+  sources: [], // {filename, sheets:[{sheetName,type,headerRow,colMap,rows}]}
+};
+
+const MAIN_TARGETS = [
+  ['phCaCl2', h => /^ph\s*\(?cacl2\)?/.test(h)],
+  ['phAgua',  h => /^ph\s*\(?(água|agua|h2o)\)?/.test(h)],
+  ['CaMg',    h => /^ca\s*\+\s*mg/.test(h)],
+  ['HAl',     h => /^h\s*\+\s*al/.test(h)],
+  ['Al',      h => /^al\b/.test(h)],
+  ['Ca',      h => /^ca\b/.test(h) && !/^ca\s*\+/.test(h) && !/^ca\s*\/\s*(mg|k|ctc)/.test(h)],
+  ['Mg',      h => /^mg\b/.test(h) && !/^mg\s*\/\s*(ctc|k)/.test(h)],
+  ['K',       h => /^k\b/.test(h) && h.includes('cmolc')],
+  ['S',       h => /^s\s*\(mg/.test(h)],
+  ['Cu',      h => /^cu\b/.test(h)],
+  ['Fe',      h => /^fe\b/.test(h)],
+  ['Mn',      h => /^mn\b/.test(h)],
+  ['Zn',      h => /^zn\b/.test(h)],
+  ['B',       h => /^b\s*\(mg/.test(h)],
+  ['P',       h => /^p\s*\(meh\)/.test(h)],
+  ['Na',      h => /^na\b/.test(h)],
+  ['T',       h => /^t\s*\(cmolc/.test(h)],
+  ['V',       h => /^v\s*\(%\)/.test(h)],
+  ['SatAl',   h => /sat\.?\s*al/.test(h)],
+  ['CaCTC',   h => /ca\s*\/\s*ctc/.test(h)],
+  ['MgCTC',   h => /mg\s*\/\s*ctc/.test(h)],
+  ['KCTC',    h => /^k\s*\/\s*ctc/.test(h)],
+  ['HAlCTC',  h => /h\s*\+\s*al\s*\/\s*ctc/.test(h)],
+  ['CaMgRatio', h => /^ca\s*\/\s*mg$/.test(h)],
+  ['CaK',     h => /^ca\s*\/\s*k$/.test(h)],
+  ['MgK',     h => /^mg\s*\/\s*k$/.test(h)],
+];
+
+function normId(raw){
+  if (raw === null || raw === undefined) return null;
+  const s = String(raw).trim();
+  const m = s.match(/(\d{4,6})\s*$/);
+  return m ? parseInt(m[1],10) : null;
+}
+function colLetter(idx0){ return XLSX.utils.encode_col(idx0); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+/* ---------------- MAIN FILE ---------------- */
+
+const dzMain = document.getElementById('dz-main');
+const inputMain = document.getElementById('input-main');
+dzMain.addEventListener('click', ()=>inputMain.click());
+['dragover'].forEach(ev=>dzMain.addEventListener(ev,e=>{e.preventDefault();dzMain.classList.add('drag');}));
+['dragleave','drop'].forEach(ev=>dzMain.addEventListener(ev,e=>{e.preventDefault();dzMain.classList.remove('drag');}));
+dzMain.addEventListener('drop', e=>{ if(e.dataTransfer.files[0]) loadMainFile(e.dataTransfer.files[0]); });
+inputMain.addEventListener('change', e=>{ if(e.target.files[0]) loadMainFile(e.target.files[0]); });
+
+function loadMainFile(file){
+  const reader = new FileReader();
+  reader.onload = e => {
+    const data = new Uint8Array(e.target.result);
+    const wb = XLSX.read(data, {type:'array', cellFormula:true});
+    state.mainWB = wb;
+    document.getElementById('main-status').innerHTML =
+      `<div class="file-chip"><span class="name">${esc(file.name)}</span><span class="status">carregado</span></div>`;
+
+    const sel = document.getElementById('sheet-select');
+    sel.innerHTML = '';
+    let bestGuess = wb.SheetNames[0];
+    let bestScore = -1;
+    wb.SheetNames.forEach(name=>{
+      const aoa = XLSX.utils.sheet_to_json(wb.Sheets[name], {header:1, defval:null, raw:true});
+      const hRow = findMainHeaderRow(aoa);
+      if (hRow >= 0 && hRow > bestScore){ bestScore = hRow; bestGuess = name; }
+      const opt = document.createElement('option');
+      opt.value = name; opt.textContent = name + (hRow>=0 ? '  (detectado)' : '');
+      sel.appendChild(opt);
+    });
+    sel.value = bestGuess;
+    sel.onchange = () => selectMainSheet(sel.value);
+    document.getElementById('main-config').classList.remove('hidden');
+    selectMainSheet(bestGuess);
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function findMainHeaderRow(aoa){
+  for (let r=0; r<Math.min(aoa.length,30); r++){
+    const row = aoa[r] || [];
+    if (row.some(c => String(c ?? '').trim().toLowerCase() === 'lab')) return r;
+  }
+  return -1;
+}
+
+function selectMainSheet(name){
+  state.mainSheetName = name;
+  const aoa = XLSX.utils.sheet_to_json(state.mainWB.Sheets[name], {header:1, defval:null, raw:true});
+  state.mainAOA = aoa;
+  const hRow = findMainHeaderRow(aoa);
+  state.mainHeaderRow = hRow;
+  state.mainColMap = {};
+
+  if (hRow === -1){
+    document.getElementById('main-map-report').innerHTML =
+      `<div class="note" style="color:var(--rust);border-color:var(--rust);">Não encontrei uma coluna "Lab" nesta aba — escolha outra aba ou confira o arquivo.</div>`;
+    document.getElementById('btn-process').disabled = true;
+    return;
+  }
+
+  const headerRowVals = aoa[hRow].map(c => String(c ?? '').trim());
+  headerRowVals.forEach((h,i)=>{
+    if (h.toLowerCase() === 'lab'){ state.mainColMap['Lab'] = i; return; }
+    const hl = h.toLowerCase();
+    for (const [key, test] of MAIN_TARGETS){
+      if (state.mainColMap[key] !== undefined) continue;
+      if (test(hl)) { state.mainColMap[key] = i; break; }
+    }
+  });
+
+  // find last data row
+  let lastRow = hRow;
+  for (let r=hRow+1; r<aoa.length; r++){
+    if (aoa[r] && aoa[r][state.mainColMap['Lab']] != null) lastRow = r;
+  }
+  state.mainLastRow = lastRow;
+
+  renderMainMap();
+  updateProcessButton();
+}
+
+function renderMainMap(){
+  const rows = MAIN_TARGETS.map(([key])=>{
+    const idx = state.mainColMap[key];
+    const found = idx !== undefined;
+    return `<tr><td>${key}</td><td>${found ? colLetter(idx)+' — '+esc(state.mainAOA[state.mainHeaderRow][idx]) : '—'}</td>
+      <td>${found ? '<span class="pill">ok</span>' : '<span class="pill miss">não encontrada</span>'}</td></tr>`;
+  }).join('');
+  document.getElementById('main-map-report').innerHTML =
+    `<p style="font-size:12.5px;color:var(--muted);margin:12px 0 0;">
+      ${state.mainLastRow - state.mainHeaderRow} linhas de amostra detectadas · cabeçalho na linha ${state.mainHeaderRow+1}
+    </p>
+    <table class="map-table"><thead><tr><th>Campo</th><th>Coluna</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+/* ---------------- SOURCE FILES ---------------- */
+
+const dzSrc = document.getElementById('dz-sources');
+const inputSrc = document.getElementById('input-sources');
+dzSrc.addEventListener('click', ()=>inputSrc.click());
+['dragover'].forEach(ev=>dzSrc.addEventListener(ev,e=>{e.preventDefault();dzSrc.classList.add('drag');}));
+['dragleave','drop'].forEach(ev=>dzSrc.addEventListener(ev,e=>{e.preventDefault();dzSrc.classList.remove('drag');}));
+dzSrc.addEventListener('drop', e=>{ e.preventDefault(); loadSourceFiles(e.dataTransfer.files); });
+inputSrc.addEventListener('change', e=>{ loadSourceFiles(e.target.files); });
+
+function loadSourceFiles(fileList){
+  Array.from(fileList).forEach(file=>{
+    const reader = new FileReader();
+    reader.onload = e=>{
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, {type:'array'});
+      const sheets = [];
+      wb.SheetNames.forEach(sn=>{
+        const aoa = XLSX.utils.sheet_to_json(wb.Sheets[sn], {header:1, defval:null, raw:true});
+        const cls = classifySourceSheet(aoa, sn);
+        if (cls) sheets.push({sheetName:sn, ...cls, aoa});
+      });
+      state.sources.push({filename:file.name, sheets});
+      renderSourcesList();
+      updateProcessButton();
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function classifySourceSheet(aoa, sheetName){
+  const lowerName = sheetName.trim().toLowerCase();
+
+  // 1) header-based: ICP "Sample Id" sheets (macro or micro)
+  for (let r=0; r<Math.min(aoa.length,10); r++){
+    const row = (aoa[r]||[]).map(c=>String(c ?? '').trim());
+    const rowLower = row.map(s=>s.toLowerCase());
+    if (rowLower.some(c=>/sample\s*id/.test(c))){
+      const colMap = {};
+      row.forEach((h,i)=>{
+        const hl = h.toLowerCase();
+        if (/sample\s*id/.test(hl)) colMap.id = i;
+        else if (/^ca\b/.test(hl)) colMap.Ca = i;
+        else if (/^k\b/.test(hl)) colMap.K = i;
+        else if (/^na\b/.test(hl)) colMap.Na = i;
+        else if (/^mg\b/.test(hl)) colMap.Mg = i;
+        else if (/^cu\b/.test(hl)) colMap.Cu = i;
+        else if (/^fe\b/.test(hl)) colMap.Fe = i;
+        else if (/^mn\b/.test(hl)) colMap.Mn = i;
+        else if (/^zn\b/.test(hl)) colMap.Zn = i;
+        else if (/^b\s*249/.test(hl)) colMap.B = i;
+        else if (/^b\s*208/.test(hl) && colMap.B===undefined) colMap.B = i;
+        else if (/^p\b/.test(hl)) colMap.P = i;
+      });
+      if (colMap.id !== undefined && Object.keys(colMap).length>1){
+        return {type:'icp', headerRow:r, colMap};
+      }
+    }
+    // Enxofre-type: ID AMOSTRAS + S
+    if (rowLower.some(c=>/id\s*amostras/.test(c))){
+      const colMap = {};
+      row.forEach((h,i)=>{
+        const hl = h.toLowerCase();
+        if (/id\s*amostras/.test(hl)) colMap.id = i;
+        else if (hl === 's') colMap.S = i;
+      });
+      if (colMap.id !== undefined && colMap.S !== undefined){
+        return {type:'enxofre', headerRow:r, colMap};
+      }
+    }
+  }
+
+  // 2) pH sheet (deep header, e.g. INFOLAB template)
+  if (lowerName === 'ph'){
+    for (let r=0; r<Math.min(aoa.length,150); r++){
+      const row = (aoa[r]||[]).map(c=>String(c ?? '').trim());
+      const rowLower = row.map(s=>s.toLowerCase());
+      if (rowLower.some(c=>/ph\s*cacl2/.test(c)) && rowLower.some(c=>/h\s*\+\s*al/.test(c))){
+        const colMap = {id:0};
+        let lastAl;
+        row.forEach((h,i)=>{
+          const hl = h.toLowerCase();
+          if (/^ph\s*cacl2/.test(hl)) colMap.phCaCl2 = i;
+          else if (/^ph\s*(h2o|água|agua)/.test(hl)) colMap.phAgua = i;
+          else if (/^h\s*\+\s*al/.test(hl)) colMap.HAl = i;
+          else if (hl === 'al') lastAl = i;
+        });
+        if (lastAl !== undefined) colMap.Al = lastAl;
+        return {type:'ph', headerRow:r, colMap};
+      }
+    }
+  }
+
+  // 3) headerless macro ICP fallback ("Conc. in Sample Units" with no header row)
+  if (/conc\.?\s*in\s*sample\s*units/.test(lowerName)){
+    const row0 = aoa[0]||[];
+    if (row0.length >= 5 && typeof row0[1] === 'number' && row0[1] > 100){
+      return {type:'icp', headerRow:-1, colMap:{id:1,Ca:2,K:3,Na:4,Mg:5}};
+    }
+  }
+
+  return null;
+}
+
+function renderSourcesList(){
+  const el = document.getElementById('sources-list');
+  el.innerHTML = state.sources.map((src, fi)=>{
+    const parts = src.sheets.map(sh=>{
+      const keys = Object.keys(sh.colMap).filter(k=>k!=='id');
+      return `${sh.type}(${keys.join(',')})`;
+    });
+    const okStatus = src.sheets.length>0;
+    return `<div class="file-chip">
+      <span class="name">${esc(src.filename)}</span>
+      <span class="status ${okStatus?'':'warn'}">${okStatus ? esc(parts.join(' · ')) : 'nenhum formato reconhecido'}</span>
+      <button data-fi="${fi}" class="remove-src" title="remover">×</button>
+    </div>`;
+  }).join('');
+  el.querySelectorAll('.remove-src').forEach(btn=>{
+    btn.onclick = ()=>{
+      state.sources.splice(parseInt(btn.dataset.fi),1);
+      renderSourcesList();
+      updateProcessButton();
+    };
+  });
+}
+
+function updateProcessButton(){
+  const ready = state.mainWB && state.mainHeaderRow>=0 && state.sources.some(s=>s.sheets.length>0);
+  document.getElementById('btn-process').disabled = !ready;
+}
+
+/* ---------------- PROCESS ---------------- */
+
+document.getElementById('btn-process').addEventListener('click', processAll);
+
+function buildSourceData(){
+  // key -> Map(id -> {value, file})
+  const data = {};
+  function put(key, id, value, filename){
+    if (value === null || value === undefined || value === '') return;
+    if (typeof value !== 'number') { value = parseFloat(value); if (isNaN(value)) return; }
+    if (!data[key]) data[key] = new Map();
+    if (!data[key].has(id)) data[key].set(id, {value, filename});
+  }
+  state.sources.forEach(src=>{
+    src.sheets.forEach(sh=>{
+      const start = sh.headerRow===-1 ? 0 : sh.headerRow+1;
+      for (let r=start; r<sh.aoa.length; r++){
+        const row = sh.aoa[r];
+        if (!row) continue;
+        const id = normId(row[sh.colMap.id]);
+        if (id===null) continue;
+        Object.keys(sh.colMap).forEach(k=>{
+          if (k==='id') return;
+          put(k, id, row[sh.colMap[k]], src.filename);
+        });
+      }
+    });
+  });
+  return data;
+}
+
+function processAll(){
+  const optNeg = document.getElementById('opt-neg').checked;
+  const optCuZn10 = document.getElementById('opt-cuzn10').checked;
+  const optFormulas = document.getElementById('opt-formulas').checked;
+
+  const sourceData = buildSourceData();
+  const ws = state.mainWB.Sheets[state.mainSheetName];
+  const cm = state.mainColMap;
+  const hRow = state.mainHeaderRow;
+  const lastRow = state.mainLastRow;
+
+  const baseKeys = ['Ca','Mg','K','Na','S','Cu','Fe','Mn','Zn','B','P','phCaCl2','phAgua','Al','HAl'];
+  const filledCount = {}; baseKeys.forEach(k=>filledCount[k]=0);
+  let negZeroed = 0, skippedExisting = 0;
+  const mainIds = new Set();
+
+  function getCell(r, c){ return XLSX.utils.encode_cell({r,c}); }
+  function readVal(r,c){
+    const addr = getCell(r,c);
+    const cell = ws[addr];
+    return cell ? cell.v : undefined;
+  }
+  function writeVal(r,c,v){
+    const addr = getCell(r,c);
+    ws[addr] = {t:'n', v:v};
+    const ref = XLSX.utils.decode_range(ws['!ref']);
+    if (r > ref.e.r) ref.e.r = r;
+    if (c > ref.e.c) ref.e.c = c;
+    ws['!ref'] = XLSX.utils.encode_range(ref);
+  }
+  function writeFormula(r,c,f){
+    const addr = getCell(r,c);
+    ws[addr] = {t:'n', f:f};
+  }
+
+  // 1) base fill
+  for (let r=hRow+1; r<=lastRow; r++){
+    const labVal = readVal(r, cm['Lab']);
+    const id = normId(labVal);
+    if (id===null) continue;
+    mainIds.add(id);
+
+    baseKeys.forEach(key=>{
+      if (cm[key]===undefined) return;
+      const src = sourceData[key];
+      if (!src || !src.has(id)) return;
+      const existing = readVal(r, cm[key]);
+      if (existing !== undefined && existing !== null) { skippedExisting++; return; }
+      let v = src.get(id).value;
+      if ((key==='Cu' || key==='Zn') && optCuZn10) v = v*10;
+      if (optNeg && v < 0) { v = 0; negZeroed++; }
+      writeVal(r, cm[key], v);
+      filledCount[key]++;
+    });
+  }
+
+  // orphans: ids present in source but not in main
+  const orphans = {};
+  baseKeys.forEach(key=>{
+    if (!sourceData[key]) return;
+    const missing = [];
+    sourceData[key].forEach((val, id)=>{ if (!mainIds.has(id)) missing.push(id); });
+    if (missing.length) orphans[key] = missing;
+  });
+
+  // 2) derived formulas
+  const formulaCounts = {};
+  if (optFormulas){
+    ['CaMg','T','V','CaCTC','MgCTC','KCTC','HAlCTC','SatAl','CaMgRatio','CaK','MgK'].forEach(k=>formulaCounts[k]=0);
+    for (let r=hRow+1; r<=lastRow; r++){
+      const has = k => cm[k]!==undefined && typeof readVal(r,cm[k])==='number';
+      const addr = k => getCell(r, cm[k]);
+
+      if (cm['CaMg']!==undefined && readVal(r,cm['CaMg'])==null && has('Ca') && has('Mg')){
+        writeFormula(r, cm['CaMg'], `${addr('Ca')}+${addr('Mg')}`);
+        formulaCounts['CaMg']++;
+      }
+
+      const haveSB = has('Ca') && has('Mg') && has('K') && has('Na');
+      if (cm['T']!==undefined && readVal(r,cm['T'])==null && haveSB && has('HAl')){
+        writeFormula(r, cm['T'], `${addr('Ca')}+${addr('Mg')}+${addr('K')}+${addr('Na')}+${addr('HAl')}`);
+        formulaCounts['T']++;
+      }
+      const tAddr = addr('T');
+      const tIsNum = cm['T']!==undefined && (typeof readVal(r,cm['T'])==='number' || (ws[tAddr] && ws[tAddr].f));
+
+      if (cm['V']!==undefined && readVal(r,cm['V'])==null && haveSB && tIsNum){
+        writeFormula(r, cm['V'], `IF(${tAddr}=0,"",100*(${addr('Ca')}+${addr('Mg')}+${addr('K')}+${addr('Na')})/${tAddr})`);
+        formulaCounts['V']++;
+      }
+      if (cm['CaCTC']!==undefined && readVal(r,cm['CaCTC'])==null && has('Ca') && tIsNum){
+        writeFormula(r, cm['CaCTC'], `IF(${tAddr}=0,"",100*${addr('Ca')}/${tAddr})`); formulaCounts['CaCTC']++;
+      }
+      if (cm['MgCTC']!==undefined && readVal(r,cm['MgCTC'])==null && has('Mg') && tIsNum){
+        writeFormula(r, cm['MgCTC'], `IF(${tAddr}=0,"",100*${addr('Mg')}/${tAddr})`); formulaCounts['MgCTC']++;
+      }
+      if (cm['KCTC']!==undefined && readVal(r,cm['KCTC'])==null && has('K') && tIsNum){
+        writeFormula(r, cm['KCTC'], `IF(${tAddr}=0,"",100*${addr('K')}/${tAddr})`); formulaCounts['KCTC']++;
+      }
+      if (cm['HAlCTC']!==undefined && readVal(r,cm['HAlCTC'])==null && has('HAl') && tIsNum){
+        writeFormula(r, cm['HAlCTC'], `IF(${tAddr}=0,"",100*${addr('HAl')}/${tAddr})`); formulaCounts['HAlCTC']++;
+      }
+      if (cm['SatAl']!==undefined && readVal(r,cm['SatAl'])==null && has('Al') && haveSB){
+        const denom = `(${addr('Ca')}+${addr('Mg')}+${addr('K')}+${addr('Na')}+${addr('Al')})`;
+        writeFormula(r, cm['SatAl'], `IF(${denom}=0,"",100*${addr('Al')}/${denom})`);
+        formulaCounts['SatAl']++;
+      }
+      if (cm['CaMgRatio']!==undefined && readVal(r,cm['CaMgRatio'])==null && has('Ca') && has('Mg')){
+        writeFormula(r, cm['CaMgRatio'], `IF(${addr('Mg')}=0,"",${addr('Ca')}/${addr('Mg')})`); formulaCounts['CaMgRatio']++;
+      }
+      if (cm['CaK']!==undefined && readVal(r,cm['CaK'])==null && has('Ca') && has('K')){
+        writeFormula(r, cm['CaK'], `IF(${addr('K')}=0,"",${addr('Ca')}/${addr('K')})`); formulaCounts['CaK']++;
+      }
+      if (cm['MgK']!==undefined && readVal(r,cm['MgK'])==null && has('Mg') && has('K')){
+        writeFormula(r, cm['MgK'], `IF(${addr('K')}=0,"",${addr('Mg')}/${addr('K')})`); formulaCounts['MgK']++;
+      }
+    }
+  }
+
+  renderReport(filledCount, negZeroed, skippedExisting, orphans, formulaCounts, optFormulas);
+  document.getElementById('btn-download').classList.remove('hidden');
+  document.getElementById('btn-download').onclick = downloadResult;
+}
+
+function renderReport(filledCount, negZeroed, skippedExisting, orphans, formulaCounts, optFormulas){
+  const totalFilled = Object.values(filledCount).reduce((a,b)=>a+b,0);
+  const stats = Object.entries(filledCount).filter(([,v])=>v>0)
+    .map(([k,v])=>`<div class="stat"><div class="n">${v}</div><div class="l">${k}</div></div>`).join('');
+
+  let log = `<span class="head">Preenchimento base</span>\n`;
+  log += `  total de células novas: <span class="ok">${totalFilled}</span>\n`;
+  log += `  negativos zerados: ${negZeroed}\n`;
+  log += `  já preenchidas (ignoradas): ${skippedExisting}\n`;
+
+  const orphanKeys = Object.keys(orphans);
+  if (orphanKeys.length){
+    log += `\n<span class="warn">Atenção — IDs do laudo sem linha correspondente na planilha principal:</span>\n`;
+    orphanKeys.forEach(k=>{
+      log += `  ${k}: ${orphans[k].length} id(s) — ${orphans[k].slice(0,8).join(', ')}${orphans[k].length>8?', …':''}\n`;
+    });
+  }
+
+  if (optFormulas){
+    const totalF = Object.values(formulaCounts).reduce((a,b)=>a+b,0);
+    log += `\n<span class="head">Relações calculadas (fórmula)</span>\n`;
+    log += `  total: <span class="ok">${totalF}</span> células\n`;
+    Object.entries(formulaCounts).filter(([,v])=>v>0).forEach(([k,v])=>{ log += `  ${k}: ${v}\n`; });
+  }
+
+  document.getElementById('report').innerHTML =
+    `<div class="summary-grid">${stats}</div><div class="log">${log}</div>`;
+}
+
+function downloadResult(){
+  const outName = 'planilha-principal-preenchida.xlsx';
+  XLSX.writeFile(state.mainWB, outName, {bookType:'xlsx'});
+}
+</script>
+</body>
+</html>
