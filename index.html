@@ -518,6 +518,7 @@ function classifySourceSheet(aoa, sheetName){
         else if (/^ca\b/.test(hl)) colMap.Ca = i;
         else if (/^k\b/.test(hl)) colMap.K = i;
         else if (/^na\b/.test(hl)) colMap.Na = i;
+        else if (/^al\b/.test(hl)) colMap.Al = i;
         else if (/^mg\b/.test(hl)) colMap.Mg = i;
         else if (/^cu\b/.test(hl)) colMap.Cu = i;
         else if (/^fe\b/.test(hl)) colMap.Fe = i;
@@ -537,7 +538,7 @@ function classifySourceSheet(aoa, sheetName){
       row.forEach((h,i)=>{
         const hl = h.toLowerCase();
         if (/id\s*amostras/.test(hl)) colMap.id = i;
-        else if (hl === 's') colMap.S = i;
+        else if (hl === 's' || /^s\s*\(/.test(hl)) colMap.S = i;
       });
       if (colMap.id !== undefined && colMap.S !== undefined){
         return {type:'enxofre', headerRow:r, colMap};
